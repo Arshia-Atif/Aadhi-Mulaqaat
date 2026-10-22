@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="emerald" class="dark h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Aadhi Mulaqaat - Chat Application</title>
+  <link rel="shortcut icon" href="./logo-removebg-preview.png" type="image/x-icon">
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+  <!-- Custom Style Sheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="h-full font-sans antialiased overflow-x-hidden transition-colors duration-300 theme-bg theme-text relative">
+
+  <!-- Global Particle Canvas Background -->
+  <canvas id="bgCanvas" class="fixed inset-0 z-0 pointer-events-none opacity-50"></canvas>
+
+  <!-- ================= LANDING VIEW ================= -->
+  <div id="landingView" class="relative min-h-screen flex flex-col justify-between overflow-x-hidden z-10">
+    
+    <!-- NAVBAR -->
+    <header class="relative z-20 w-full px-3 sm:px-6 py-2.5 sm:py-3 flex flex-wrap items-center justify-between gap-2 border-b theme-border backdrop-blur-md theme-card-bg">
+      <div class="flex items-center gap-2 sm:gap-4">
+        <div class="px-2 sm:px-3 py-1 rounded-xl sm:rounded-2xl border theme-border shadow-md bg-slate-900/10 dark:bg-white/10 flex items-center justify-center">
+          <img id="appLogoImg" src="./logo-removebg-preview.png" alt="Aadhi Mulaqaat Logo" class="h-10 sm:h-12 md:h-14 w-auto object-contain logo-img transition-all">
+        </div>
+        <span class="text-lg sm:text-2xl md:text-3xl font-extrabold tracking-wide theme-gradient-text truncate">
+          Aadhi Mulaqaat
+        </span>
+      </div>
+
+      <nav class="hidden md:flex items-center gap-6 font-semibold text-xs sm:text-sm">
+        <a href="#hero" class="hover:theme-accent-text transition-colors">Home</a>
+        <a href="#features" class="hover:theme-accent-text transition-colors">Features</a>
+        <a href="#about" class="hover:theme-accent-text transition-colors">About Us</a>
+      </nav>
+
+      <div class="flex items-center gap-2 sm:gap-3 ml-auto sm:ml-0">
+        <div class="relative">
+          <button onclick="toggleThemeDropdown('themeDropdownLanding')" class="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl border theme-border theme-text text-xs sm:text-sm font-medium transition-all shadow-md theme-card-bg hover:opacity-90">
+            <i class="fa-solid fa-palette theme-accent-text text-xs sm:text-sm"></i>
+            <span>Theme</span>
+            <i class="fa-solid fa-chevron-down text-[10px] sm:text-xs opacity-70"></i>
+          </button>
+          
+          <div id="themeDropdownLanding" class="hidden absolute right-0 mt-2 w-44 sm:w-48 py-2 theme-card-bg border theme-border rounded-2xl shadow-2xl z-50 backdrop-blur-xl">
+            <div class="px-3 py-1 text-[10px] sm:text-xs font-semibold theme-subtext uppercase tracking-wider">Select Palette</div>
+            <button onclick="setPalette('emerald')" class="w-full text-left px-3.5 py-2 hover:bg-black/10 dark:hover:bg-white/10 flex items-center gap-2 text-xs sm:text-sm theme-text">
+              <span class="w-3 h-3 rounded-full bg-emerald-500"></span> Emerald Romance
+            </button>
+            <button onclick="setPalette('ruby')" class="w-full text-left px-3.5 py-2 hover:bg-black/10 dark:hover:bg-white/10 flex items-center gap-2 text-xs sm:text-sm theme-text">
+              <span class="w-3 h-3 rounded-full bg-rose-500"></span> Ruby Passion
+            </button>
+            <button onclick="setPalette('indigo')" class="w-full text-left px-3.5 py-2 hover:bg-black/10 dark:hover:bg-white/10 flex items-center gap-2 text-xs sm:text-sm theme-text">
+              <span class="w-3 h-3 rounded-full bg-indigo-500"></span> Sapphire Dream
+            </button>
+            <button onclick="setPalette('sunset')" class="w-full text-left px-3.5 py-2 hover:bg-black/10 dark:hover:bg-white/10 flex items-center gap-2 text-xs sm:text-sm theme-text">
+              <span class="w-3 h-3 rounded-full bg-amber-500"></span> Golden Sunset
+            </button>
+            <button onclick="setPalette('cyberpunk')" class="w-full text-left px-3.5 py-2 hover:bg-black/10 dark:hover:bg-white/10 flex items-center gap-2 text-xs sm:text-sm theme-text">
+              <span class="w-3 h-3 rounded-full bg-fuchsia-500"></span> Neon Cyberpunk
+            </button>
+          </div>
+        </div>
+
+        <button onclick="toggleDarkLightMode()" class="p-2 sm:p-2.5 rounded-xl border theme-border theme-text text-xs sm:text-sm transition-all shadow-md theme-card-bg hover:opacity-90">
+          <i class="fa-solid fa-moon text-xs sm:text-sm modeIconGlobal"></i>
+        </button>
+
+        <button id="guestNavBtn" class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl theme-btn-primary text-white font-semibold text-xs sm:text-sm transition-all shadow-lg active:scale-95 flex items-center gap-1.5">
+          <i class="fa-solid fa-user-ninja text-xs sm:text-sm"></i>
+          <span>Guest Mode</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- HERO SECTION -->
+    <main id="hero" class="relative z-10 min-h-[calc(100vh-80px)] flex flex-col items-center justify-center text-center px-4 sm:px-6 py-12">
+      <div class="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border theme-border backdrop-blur-md mb-4 sm:mb-6 animate-pulse theme-card-bg shadow-sm">
+        <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full theme-accent-bg"></span>
+        <span class="text-[10px] sm:text-xs font-semibold tracking-wider theme-subtext uppercase">Realtime Interactive Chat Platform</span>
+      </div>
+
+      <h1 class="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight max-w-4xl leading-tight mb-3 sm:mb-4 theme-text">
+        Aadhi Mulaqaat
+      </h1>
+
+      <p class="text-base sm:text-xl md:text-2xl font-light italic theme-accent-text max-w-2xl mb-6 sm:mb-8 tracking-wide px-2">
+        "Where conversations turn into timeless connections."
+      </p>
+
+      <div class="flex flex-row items-center justify-center gap-3 sm:gap-4 w-auto px-4">
+        <button id="openLoginBtn" class="px-6 py-2.5 sm:px-7 sm:py-3 rounded-xl sm:rounded-2xl theme-btn-primary text-white font-bold text-xs sm:text-sm shadow-lg transition-all duration-300 hover:scale-105 active:scale-95 flex items-center justify-center gap-2">
+          <i class="fa-solid fa-right-to-bracket text-xs sm:text-sm"></i> Login
+        </button>
+
+        <button id="openSignupBtn" class="px-6 py-2.5 sm:px-7 sm:py-3 rounded-xl sm:rounded-2xl theme-card-bg border theme-border theme-text font-bold text-xs sm:text-sm shadow-lg transition-all duration-300 hover:scale-105 active:scale-95 flex items-center justify-center gap-2">
+          <i class="fa-solid fa-user-plus theme-accent-text text-xs sm:text-sm"></i> Sign Up
+        </button>
+      </div>
+    </main>
+
+    <footer class="relative z-10 py-3 sm:py-4 text-center text-[10px] sm:text-xs theme-subtext border-t theme-border backdrop-blur-md theme-card-bg px-4">
+      &copy; 2026 Aadhi Mulaqaat. All Rights Reserved.
+    </footer>
+  </div>
+
+  <!-- AUTH MODALS WITH BUILT-IN AVATAR SELECTION -->
+  <div id="signupModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md hidden p-3 sm:p-4">
+    <div class="theme-card-bg border theme-border rounded-2xl sm:rounded-3xl p-5 sm:p-8 max-w-md w-full shadow-2xl relative theme-text max-h-[90vh] overflow-y-auto custom-scroll">
+      <button onclick="closeModal('signupModal')" class="absolute top-4 right-4 sm:top-5 sm:right-5 theme-subtext hover:theme-text text-base sm:text-lg">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+      
+      <div id="signupStep1">
+        <h2 class="text-xl sm:text-2xl font-bold mb-1 theme-text">Create Account</h2>
+        <p class="text-xs theme-subtext mb-4">Choose an avatar or upload custom photo.</p>
+
+        <!-- Avatar Selection -->
+        <div class="flex flex-col items-center mb-5 space-y-3">
+          <div class="relative w-20 h-20">
+            <img id="signupAvatarPreview" src="https://api.dicebear.com/7.x/bottts/svg?seed=Felix" alt="Profile Preview" class="w-full h-full rounded-full object-cover border-4 theme-border shadow-md">
+            <label for="signupPicFile" class="absolute bottom-0 right-0 w-7 h-7 rounded-full theme-btn-primary text-white flex items-center justify-center cursor-pointer shadow-lg hover:scale-110 transition-transform">
+              <i class="fa-solid fa-camera text-xs"></i>
+            </label>
+            <input type="file" id="signupPicFile" accept="image/*" class="hidden">
+          </div>
+
+          <div class="text-[11px] theme-subtext font-semibold">Or Pick Built-in Avatar:</div>
+          <div class="flex gap-2 overflow-x-auto p-1 custom-scroll" id="signupBuiltinAvatars">
+            <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Felix" class="w-9 h-9 rounded-full border-2 border-emerald-500 cursor-pointer hover:scale-110 transition-all avatar-option" onclick="selectPresetAvatar('signup', this.src)">
+            <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Aneka" class="w-9 h-9 rounded-full border theme-border cursor-pointer hover:scale-110 transition-all avatar-option" onclick="selectPresetAvatar('signup', this.src)">
+            <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Zack" class="w-9 h-9 rounded-full border theme-border cursor-pointer hover:scale-110 transition-all avatar-option" onclick="selectPresetAvatar('signup', this.src)">
+            <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Milo" class="w-9 h-9 rounded-full border theme-border cursor-pointer hover:scale-110 transition-all avatar-option" onclick="selectPresetAvatar('signup', this.src)">
+            <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Luna" class="w-9 h-9 rounded-full border theme-border cursor-pointer hover:scale-110 transition-all avatar-option" onclick="selectPresetAvatar('signup', this.src)">
+          </div>
+        </div>
+        
+        <form id="signupForm" class="space-y-3 sm:space-y-4">
+          <div>
+            <label class="block text-xs font-semibold theme-text mb-1">Full Name</label>
+            <input type="text" id="signupName" required class="w-full px-3.5 py-2 sm:py-2.5 rounded-xl theme-input-bg border theme-border theme-text text-xs sm:text-sm focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold theme-text mb-1">Email Address</label>
+            <input type="email" id="signupEmail" required class="w-full px-3.5 py-2 sm:py-2.5 rounded-xl theme-input-bg border theme-border theme-text text-xs sm:text-sm focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold theme-text mb-1">Password</label>
+            <input type="password" id="signupPassword" required minlength="6" class="w-full px-3.5 py-2 sm:py-2.5 rounded-xl theme-input-bg border theme-border theme-text text-xs sm:text-sm focus:outline-none">
+          </div>
+          
+          <button type="submit" class="w-full py-2.5 sm:py-3 rounded-xl theme-btn-primary text-white font-bold text-xs sm:text-sm shadow-lg transition-all active:scale-95">
+            Sign Up & Send Email
+          </button>
+        </form>
+
+        <div class="relative my-4 sm:my-5 text-center">
+          <div class="absolute inset-0 flex items-center"><div class="w-full border-t theme-border"></div></div>
+          <span class="relative px-3 theme-card-bg text-[10px] sm:text-xs theme-subtext uppercase">Or continue with</span>
+        </div>
+
+        <button id="googleAuthBtnSignup" type="button" class="w-full py-2 sm:py-2.5 rounded-xl theme-input-bg border theme-border theme-text text-xs sm:text-sm font-medium flex items-center justify-center gap-2 transition-all">
+          <i class="fa-brands fa-google text-rose-500"></i> Continue with Google
+        </button>
+
+        <p class="text-xs text-center theme-subtext mt-4 sm:mt-6">
+          Already have an account? 
+          <a href="#" onclick="switchModal('signupModal', 'loginModal')" class="theme-accent-text hover:underline font-semibold">Log In</a>
+        </p>
+      </div>
+
+      <div id="signupStep2" class="hidden text-center">
+        <i class="fa-solid fa-envelope-circle-check text-3xl sm:text-4xl theme-accent-text mb-2 sm:mb-3"></i>
+        <h3 class="text-lg sm:text-xl font-bold theme-text mb-1 sm:mb-2">Verify Your Email</h3>
+        <p class="text-xs theme-subtext mb-4 sm:mb-6">A verification email was sent. Verify and login to continue.</p>
+
+        <button id="finishProfileBtn" class="w-full py-2.5 sm:py-3 rounded-xl theme-btn-primary text-white font-bold text-xs sm:text-sm shadow-lg transition-all">
+          Continue to Login
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="loginModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md hidden p-3 sm:p-4">
+    <div class="theme-card-bg border theme-border rounded-2xl sm:rounded-3xl p-5 sm:p-8 max-w-md w-full shadow-2xl relative theme-text">
+      <button onclick="closeModal('loginModal')" class="absolute top-4 right-4 sm:top-5 sm:right-5 theme-subtext hover:theme-text text-base sm:text-lg">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <h2 class="text-xl sm:text-2xl font-bold mb-1 theme-text">Welcome Back</h2>
+      <p class="text-xs theme-subtext mb-4 sm:mb-6">Enter your email & password to sign in.</p>
+
+      <form id="loginForm" class="space-y-3 sm:space-y-4">
+        <div>
+          <label class="block text-xs font-semibold theme-text mb-1">Email Address</label>
+          <input type="email" id="loginEmail" required class="w-full px-3.5 py-2 sm:py-2.5 rounded-xl theme-input-bg border theme-border theme-text text-xs sm:text-sm focus:outline-none">
+        </div>
+        <div>
+          <div class="flex justify-between items-center mb-1">
+            <label class="text-xs font-semibold theme-text">Password</label>
+            <a href="#" id="forgotPasswordLink" class="text-[10px] sm:text-xs theme-accent-text hover:underline">Forgot password?</a>
+          </div>
+          <input type="password" id="loginPassword" required class="w-full px-3.5 py-2 sm:py-2.5 rounded-xl theme-input-bg border theme-border theme-text text-xs sm:text-sm focus:outline-none">
+        </div>
+
+        <button type="submit" class="w-full py-2.5 sm:py-3 rounded-xl theme-btn-primary text-white font-bold text-xs sm:text-sm shadow-lg transition-all active:scale-95">
+          Sign In
+        </button>
+      </form>
+
+      <div class="relative my-4 sm:my-5 text-center">
+        <div class="absolute inset-0 flex items-center"><div class="w-full border-t theme-border"></div></div>
+        <span class="relative px-3 theme-card-bg text-[10px] sm:text-xs theme-subtext uppercase">Or continue with</span>
+      </div>
+
+      <button id="googleAuthBtnLogin" type="button" class="w-full py-2 sm:py-2.5 rounded-xl theme-input-bg border theme-border theme-text text-xs sm:text-sm font-medium flex items-center justify-center gap-2 transition-all">
+        <i class="fa-brands fa-google text-rose-500"></i> Continue with Google
+      </button>
+
+      <p class="text-xs text-center theme-subtext mt-4 sm:mt-6">
+        Don't have an account? 
+        <a href="#" onclick="switchModal('loginModal', 'signupModal')" class="theme-accent-text hover:underline font-semibold">Sign Up First</a>
+      </p>
+    </div>
+  </div>
+
+  <div id="editProfileModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md hidden p-3 sm:p-4">
+    <div class="theme-card-bg border theme-border rounded-2xl sm:rounded-3xl p-5 sm:p-8 max-w-md w-full shadow-2xl relative theme-text max-h-[90vh] overflow-y-auto custom-scroll">
+      <button onclick="closeModal('editProfileModal')" class="absolute top-4 right-4 sm:top-5 sm:right-5 theme-subtext hover:theme-text text-base sm:text-lg">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <h2 class="text-xl sm:text-2xl font-bold mb-4 theme-text">Edit Profile</h2>
+
+      <form id="editProfileForm" class="space-y-4">
+        <div class="flex flex-col items-center mb-2 space-y-3">
+          <div class="relative w-20 h-20">
+            <img id="editAvatarPreview" src="https://api.dicebear.com/7.x/bottts/svg?seed=Felix" alt="Avatar" class="w-full h-full rounded-full object-cover border-4 theme-border shadow-md">
+            <label for="editPicFileInput" class="absolute bottom-0 right-0 w-7 h-7 rounded-full theme-btn-primary text-white flex items-center justify-center cursor-pointer shadow-lg hover:scale-110 transition-transform">
+              <i class="fa-solid fa-camera text-xs"></i>
+            </label>
+            <input type="file" id="editPicFileInput" accept="image/*" class="hidden">
+          </div>
+
+          <div class="text-[11px] theme-subtext font-semibold">Or Pick Built-in Avatar:</div>
+          <div class="flex gap-2 overflow-x-auto p-1 custom-scroll">
+            <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Felix" class="w-9 h-9 rounded-full border theme-border cursor-pointer hover:scale-110 transition-all avatar-option" onclick="selectPresetAvatar('edit', this.src)">
+            <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Aneka" class="w-9 h-9 rounded-full border theme-border cursor-pointer hover:scale-110 transition-all avatar-option" onclick="selectPresetAvatar('edit', this.src)">
+            <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Zack" class="w-9 h-9 rounded-full border theme-border cursor-pointer hover:scale-110 transition-all avatar-option" onclick="selectPresetAvatar('edit', this.src)">
+            <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Milo" class="w-9 h-9 rounded-full border theme-border cursor-pointer hover:scale-110 transition-all avatar-option" onclick="selectPresetAvatar('edit', this.src)">
+            <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Luna" class="w-9 h-9 rounded-full border theme-border cursor-pointer hover:scale-110 transition-all avatar-option" onclick="selectPresetAvatar('edit', this.src)">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold theme-text mb-1">Full Name</label>
+          <input type="text" id="editProfileName" required class="w-full px-3.5 py-2 sm:py-2.5 rounded-xl theme-input-bg border theme-border theme-text text-xs sm:text-sm focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold theme-text mb-1">Bio</label>
+          <input type="text" id="editProfileBio" placeholder="Hey there! I am using Aadhi Mulaqaat" class="w-full px-3.5 py-2 sm:py-2.5 rounded-xl theme-input-bg border theme-border theme-text text-xs sm:text-sm focus:outline-none">
+        </div>
+        
+        <button type="submit" id="saveProfileBtn" class="w-full py-2.5 sm:py-3 rounded-xl theme-btn-primary text-white font-bold text-xs sm:text-sm shadow-lg transition-all active:scale-95">
+          Save Changes
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MAIN CHAT APP VIEW -->
+  <div id="chatAppView" class="hidden h-dvh w-full flex overflow-hidden theme-bg theme-text relative z-10">
+
+    <div id="mobileOverlay" class="fixed inset-0 bg-black/50 z-25 hidden md:hidden transition-opacity"></div>
+    
+    <!-- SIDEBAR -->
+    <aside id="sidebar" class="fixed md:relative top-0 bottom-0 left-0 w-72 sm:w-80 theme-card-bg border-r theme-border flex flex-col justify-between transition-transform duration-300 z-30 -translate-x-full md:translate-x-0 h-full">
+      
+      <div>
+        <div class="p-4 sm:p-5 border-b theme-border flex items-center justify-between">
+          <div class="flex items-center gap-2.5 sm:gap-3 overflow-hidden cursor-pointer" onclick="openModal('editProfileModal')">
+            <div class="relative shrink-0">
+              <img id="userAvatar" src="https://api.dicebear.com/7.x/bottts/svg?seed=Felix" alt="User Profile" class="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border-2 theme-border shadow-md">
+              <span id="userStatusDot" class="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 theme-card-bg"></span>
+            </div>
+            <div class="overflow-hidden">
+              <h3 id="userName" class="font-bold text-sm sm:text-base theme-text truncate">User Name</h3>
+              <p id="userEmail" class="text-[10px] sm:text-xs theme-subtext truncate">user@example.com</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-1">
+            <button id="toggleSidebarBtn" class="p-2 rounded-xl theme-subtext hover:theme-text transition-colors md:block">
+              <i class="fa-solid fa-angle-left text-base sm:text-lg"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="p-3 sm:p-4 space-y-1.5">
+          <button id="navGlobalChat" class="w-full px-3.5 py-2.5 rounded-2xl font-medium text-xs sm:text-sm flex items-center gap-3 active-nav-tab transition-all">
+            <i class="fa-solid fa-earth-americas text-base"></i>
+            <span>Global Lounge</span>
+          </button>
+          
+          <button id="navDirectDm" class="w-full px-3.5 py-2.5 rounded-2xl font-medium text-xs sm:text-sm flex items-center gap-3 theme-subtext hover:bg-black/10 dark:hover:bg-white/10 transition-all">
+            <i class="fa-solid fa-comments text-base"></i>
+            <span>1-on-1 Direct DM</span>
+          </button>
+
+          <button id="navGroups" class="w-full px-3.5 py-2.5 rounded-2xl font-medium text-xs sm:text-sm flex items-center gap-3 theme-subtext hover:bg-black/10 dark:hover:bg-white/10 transition-all">
+            <i class="fa-solid fa-user-group text-base"></i>
+            <span>Group Chats</span>
+          </button>
+
+          <button id="navStatus" class="w-full px-3.5 py-2.5 rounded-2xl font-medium text-xs sm:text-sm flex items-center gap-3 theme-subtext hover:bg-black/10 dark:hover:bg-white/10 transition-all">
+            <i class="fa-solid fa-circle-notch text-base"></i>
+            <span>Status Stories</span>
+          </button>
+        </div>
+
+        <div id="userDirectory" class="hidden px-3 sm:px-4 py-2 border-t theme-border">
+          <div class="flex justify-between items-center mb-2 px-1">
+            <span id="directoryTitle" class="text-[10px] sm:text-xs font-semibold theme-subtext uppercase tracking-wider">Active Users</span>
+            <span id="directoryBadge" class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+          </div>
+          <div id="activeUsersList" class="space-y-1 max-h-48 overflow-y-auto custom-scroll">
+          </div>
+        </div>
+      </div>
+
+      <div class="p-3 sm:p-4 border-t theme-border space-y-2">
+        <button id="openAiChatBtn" class="w-full py-2 px-3.5 rounded-xl theme-input-bg border theme-border theme-text font-semibold text-xs flex items-center gap-2 hover:opacity-90 transition-all">
+          <i class="fa-solid fa-sparkles theme-accent-text"></i> Mulaqaat AI ✨
+        </button>
+
+        <button id="inviteFriendsBtn" class="w-full py-2 px-3.5 rounded-xl theme-input-bg border theme-border theme-text font-semibold text-xs flex items-center gap-2 hover:opacity-90 transition-all">
+          <i class="fa-solid fa-user-plus text-sky-500"></i> Invite Friends
+        </button>
+
+        <button id="editProfileSidebarBtn" onclick="openModal('editProfileModal')" class="w-full py-2 px-3.5 rounded-xl theme-input-bg border theme-border theme-text font-semibold text-xs flex items-center gap-2 hover:opacity-90 transition-all">
+          <i class="fa-solid fa-user-pen theme-accent-text"></i> Edit Profile
+        </button>
+
+        <button id="logoutBtn" class="w-full py-2 sm:py-2.5 px-3.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-500 font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all">
+          <i class="fa-solid fa-right-from-bracket"></i> Log Out
+        </button>
+      </div>
+    </aside>
+
+    <button id="openSidebarBtn" class="md:hidden absolute top-3 left-3 z-20 p-2.5 rounded-xl theme-card-bg border theme-border theme-text shadow-xl hover:opacity-90 active:scale-95">
+      <i class="fa-solid fa-bars text-sm"></i>
+    </button>
+
+    <!-- CHAT MAIN PANEL -->
+    <main id="chatMainPanel" class="flex-1 flex flex-col h-full w-full theme-bg relative overflow-hidden bg-transparent">
+      
+      <header class="px-4 sm:px-6 py-3 border-b theme-border theme-card-bg backdrop-blur-md flex items-center justify-between z-10 pl-14 md:pl-6">
+        <div class="flex items-center gap-2.5 sm:gap-3 overflow-hidden">
+          <div id="chatRoomIcon" class="w-8 h-8 sm:w-10 sm:h-10 rounded-full theme-btn-primary text-white flex items-center justify-center font-bold text-sm sm:text-lg shrink-0">
+            #
+          </div>
+          <div class="overflow-hidden">
+            <h2 id="chatRoomTitle" class="font-bold theme-text text-sm sm:text-base truncate">Global Lounge</h2>
+            <p id="chatRoomSub" class="text-[10px] sm:text-xs theme-subtext truncate">Public chat room for everyone</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <!-- Theme & Mode Selector inside Chat Page -->
+          <div class="relative">
+            <button onclick="toggleThemeDropdown('themeDropdownChat')" class="p-2 rounded-xl theme-card-bg border theme-border theme-text hover:theme-accent-text transition-all">
+              <i class="fa-solid fa-palette text-xs sm:text-sm"></i>
+            </button>
+            <div id="themeDropdownChat" class="hidden absolute right-0 mt-2 w-44 py-2 theme-card-bg border theme-border rounded-2xl shadow-2xl z-50 backdrop-blur-xl">
+              <button onclick="setPalette('emerald')" class="w-full text-left px-3.5 py-1.5 hover:bg-black/10 dark:hover:bg-white/10 flex items-center gap-2 text-xs theme-text"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Emerald</button>
+              <button onclick="setPalette('ruby')" class="w-full text-left px-3.5 py-1.5 hover:bg-black/10 dark:hover:bg-white/10 flex items-center gap-2 text-xs theme-text"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> Ruby</button>
+              <button onclick="setPalette('indigo')" class="w-full text-left px-3.5 py-1.5 hover:bg-black/10 dark:hover:bg-white/10 flex items-center gap-2 text-xs theme-text"><span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span> Sapphire</button>
+              <button onclick="setPalette('sunset')" class="w-full text-left px-3.5 py-1.5 hover:bg-black/10 dark:hover:bg-white/10 flex items-center gap-2 text-xs theme-text"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> Sunset</button>
+              <button onclick="setPalette('cyberpunk')" class="w-full text-left px-3.5 py-1.5 hover:bg-black/10 dark:hover:bg-white/10 flex items-center gap-2 text-xs theme-text"><span class="w-2.5 h-2.5 rounded-full bg-fuchsia-500"></span> Cyberpunk</button>
+            </div>
+          </div>
+
+          <button onclick="toggleDarkLightMode()" class="p-2 rounded-xl theme-card-bg border theme-border theme-text transition-all">
+            <i class="fa-solid fa-moon text-xs sm:text-sm modeIconGlobal"></i>
+          </button>
+
+          <div class="relative hidden sm:block">
+            <input type="text" id="chatSearchInput" placeholder="Search in chat..." class="px-3 py-1.5 rounded-xl theme-input-bg border theme-border theme-text text-xs focus:outline-none w-32 sm:w-44 pl-7">
+            <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-[10px] theme-subtext"></i>
+          </div>
+
+          <select id="groupMemberFilter" class="hidden px-2 py-1.5 rounded-xl theme-input-bg border theme-border theme-text text-xs focus:outline-none">
+            <option value="all">All Members</option>
+          </select>
+
+          <button id="changeWallpaperBtn" title="Change Wallpaper" class="p-2 sm:p-2.5 rounded-xl theme-card-bg border theme-border theme-text hover:theme-accent-text transition-all">
+            <i class="fa-solid fa-image text-xs sm:text-sm"></i>
+          </button>
+
+          <button id="chatOptionsMenuBtn" title="Chat Options" class="hidden p-2 sm:p-2.5 rounded-xl theme-card-bg border theme-border theme-text transition-all hover:theme-accent-text">
+            <i class="fa-solid fa-ellipsis-vertical text-xs sm:text-sm"></i>
+          </button>
+
+          <button id="startAudioCallBtn" title="Audio Call" class="p-2 sm:p-2.5 rounded-xl theme-card-bg border theme-border theme-accent-text transition-all">
+            <i class="fa-solid fa-phone text-xs sm:text-sm"></i>
+          </button>
+
+          <button id="startVideoCallBtn" title="Video Call" class="p-2 sm:p-2.5 rounded-xl theme-card-bg border theme-border theme-accent-text transition-all">
+            <i class="fa-solid fa-video text-xs sm:text-sm"></i>
+          </button>
+        </div>
+      </header>
+
+      <div id="messagesContainer" class="flex-1 p-3 sm:p-6 overflow-y-auto space-y-3 sm:space-y-4 custom-scroll relative w-full z-10 transition-all bg-cover bg-center">
+      </div>
+
+      <!-- Emoji Picker Popup -->
+      <div id="emojiPickerPopup" class="hidden absolute bottom-20 left-4 z-40 p-3 rounded-2xl theme-card-bg border theme-border shadow-2xl w-64">
+        <div class="grid grid-cols-6 gap-2 text-xl text-center cursor-pointer" id="emojiGrid">
+          <span>😀</span><span>😂</span><span>😍</span><span>😎</span><span>🤔</span><span>😢</span>
+          <span>👍</span><span>❤️</span><span>🔥</span><span>🎉</span><span>👏</span><span>🙏</span>
+          <span>✨</span><span>🚀</span><span>💯</span><span>💡</span><span>☕</span><span>🌟</span>
+        </div>
+      </div>
+
+      <!-- Poll Creator Box -->
+      <div id="pollCreatorBox" class="hidden absolute bottom-20 left-12 z-40 p-4 rounded-2xl theme-card-bg border theme-border shadow-2xl w-72 space-y-3">
+        <div class="flex justify-between items-center">
+          <h4 class="font-bold text-xs theme-text">Create Live Poll</h4>
+          <button onclick="togglePollCreator(false)" class="text-xs theme-subtext"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <input type="text" id="pollQuestionInput" placeholder="Poll Question..." class="w-full px-3 py-1.5 rounded-xl theme-input-bg border theme-border text-xs theme-text">
+        <input type="text" id="pollOpt1Input" placeholder="Option 1" class="w-full px-3 py-1.5 rounded-xl theme-input-bg border theme-border text-xs theme-text">
+        <input type="text" id="pollOpt2Input" placeholder="Option 2" class="w-full px-3 py-1.5 rounded-xl theme-input-bg border theme-border text-xs theme-text">
+        <button onclick="submitLivePoll()" class="w-full py-1.5 rounded-xl theme-btn-primary text-white text-xs font-bold">Publish Poll</button>
+      </div>
+
+      <footer class="p-2.5 sm:p-4 border-t theme-border theme-card-bg backdrop-blur-md relative z-10">
+        <form id="chatForm" class="flex items-center gap-1.5 sm:gap-2">
+          <label class="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl theme-input-bg border theme-border theme-text cursor-pointer transition-all shrink-0" title="Attach Files">
+            <i class="fa-solid fa-paperclip text-sm sm:text-base"></i>
+            <input type="file" id="fileInput" class="hidden" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.zip">
+          </label>
+
+          <button type="button" id="pollBtn" class="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl theme-input-bg border theme-border theme-text transition-all shrink-0" title="Create Poll">
+            <i class="fa-solid fa-square-poll-vertical text-sm sm:text-base"></i>
+          </button>
+
+          <button type="button" id="emojiBtn" class="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl theme-input-bg border theme-border theme-text transition-all shrink-0" title="Emojis">
+            <i class="fa-regular fa-face-smile text-sm sm:text-base"></i>
+          </button>
+
+          <button type="button" id="voiceMsgBtn" class="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl theme-input-bg border theme-border theme-text transition-all shrink-0" title="Voice Message (Click to Record/Stop)">
+            <i class="fa-solid fa-microphone text-sm sm:text-base" id="micIcon"></i>
+          </button>
+
+          <input type="text" id="messageInput" placeholder="Type a message..." autocomplete="off" class="flex-1 min-w-0 px-3.5 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl theme-input-bg border theme-border theme-text text-xs sm:text-sm focus:outline-none transition-all">
+
+          <button type="submit" class="p-2.5 sm:p-3 sm:px-5 rounded-xl sm:rounded-2xl theme-btn-primary text-white font-bold shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 shrink-0">
+            <i class="fa-solid fa-paper-plane text-sm sm:text-base"></i>
+            <span class="hidden md:inline text-sm">Send</span>
+          </button>
+        </form>
+      </footer>
+    </main>
+
+    <!-- STATUS VIEW PANEL -->
+    <main id="statusViewPanel" class="hidden flex-1 flex flex-col h-full w-full theme-bg relative overflow-y-auto p-4 sm:p-8 custom-scroll z-10">
+      <div class="max-w-4xl mx-auto w-full">
+        <div class="flex justify-between items-center mb-6 pb-4 border-b theme-border">
+          <div>
+            <h2 class="text-xl sm:text-2xl font-bold theme-text">Realtime Status Stories</h2>
+            <p class="text-xs theme-subtext">Statuses expire automatically after 24 hours.</p>
+          </div>
+          <button onclick="postMediaStatusPrompt()" class="px-4 py-2 rounded-xl theme-btn-primary text-white font-bold text-xs sm:text-sm shadow-lg flex items-center gap-2 transition-transform active:scale-95">
+            <i class="fa-solid fa-circle-plus"></i> Add Status
+          </button>
+        </div>
+
+        <div id="statusGridContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- WebRTC CALL MODAL -->
+  <div id="callModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-lg hidden p-4">
+    <div class="theme-card-bg border theme-border rounded-3xl p-6 sm:p-8 max-w-lg w-full text-center shadow-2xl relative theme-text">
+      <h3 id="callPeerName" class="text-lg sm:text-xl font-bold theme-text mb-2">WebRTC Secure Call</h3>
+      <p id="callStatus" class="text-xs theme-accent-text mb-4">Initializing streams...</p>
+
+      <div class="grid grid-cols-2 gap-3 mb-6">
+        <div class="relative bg-black rounded-xl overflow-hidden aspect-video border theme-border">
+          <video id="localVideo" autoplay muted playsinline class="w-full h-full object-cover"></video>
+          <span class="absolute bottom-1 left-2 text-[10px] text-white bg-black/60 px-1.5 rounded">You</span>
+        </div>
+        <div class="relative bg-black rounded-xl overflow-hidden aspect-video border theme-border">
+          <video id="remoteVideo" autoplay playsinline class="w-full h-full object-cover"></video>
+          <span class="absolute bottom-1 left-2 text-[10px] text-white bg-black/60 px-1.5 rounded">Peer</span>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-center gap-6">
+        <button id="endCallBtn" class="p-3.5 sm:p-4 rounded-full bg-rose-500 hover:bg-rose-600 text-white shadow-lg transition-transform hover:scale-110 active:scale-95">
+          <i class="fa-solid fa-phone-slash text-lg sm:text-xl"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
