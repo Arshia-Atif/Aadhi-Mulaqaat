@@ -792,6 +792,63 @@ function listenToMessages() {
   });
 }
 
+// Updated Invite Friends Feature with Fallback Modal
+document.getElementById('inviteFriendsBtn')?.addEventListener('click', async () => {
+  const currentUrl = window.location.href;
+
+  try {
+    // Attempt to write link directly to Clipboard
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(currentUrl);
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'success',
+        title: 'Invite link copied!',
+        showConfirmButton: false,
+        timer: 1500,
+        background: '#1e293b',
+        color: '#fff'
+      });
+    } else {
+      throw new Error("Clipboard API restricted");
+    }
+  } catch (err) {
+    // Fallback: Show Modal with Input field to copy link manually
+    Swal.fire({
+      title: 'Invite Friends 🚀',
+      text: 'Copy and share this link with your friends to invite them:',
+      input: 'text',
+      inputValue: currentUrl,
+      showCancelButton: true,
+      confirmButtonText: 'Copy Link',
+      confirmButtonColor: '#10b981',
+      background: '#1e293b',
+      color: '#fff',
+      didOpen: () => {
+        const input = Swal.getInput();
+        input.select(); // Auto select text for fast copy
+      }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const input = Swal.getInput();
+        input.select();
+        document.execCommand('copy');
+        Swal.fire({
+          toast: true,
+          position: 'top-end',
+          icon: 'success',
+          title: 'Link copied to clipboard!',
+          showConfirmButton: false,
+          timer: 1500,
+          background: '#1e293b',
+          color: '#fff'
+        });
+      }
+    });
+  }
+});
+
 // WebRTC Call Handlers
 document.getElementById('startAudioCallBtn')?.addEventListener('click', () => startWebRTCCall(true));
 document.getElementById('startVideoCallBtn')?.addEventListener('click', () => startWebRTCCall(false));
