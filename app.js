@@ -33,6 +33,7 @@ const CLOUDINARY_CLOUD_NAME = "cxxjd9vz";
 const CLOUDINARY_UPLOAD_PRESET = "Mulaqat";
 
 let currentUser = null;
+let isGuestMode = false; // Dedicated flag for Guest Mode isolation
 let currentChatMode = 'global';
 let activeDirectUser = null;
 let activeGroup = null;
@@ -98,19 +99,19 @@ function initCanvasAnimation() {
     height = canvas.height = window.innerHeight;
   });
 
-  const particles = Array.from({ length: 50 }, () => ({
+  const particles = Array.from({ length: 55 }, () => ({
     x: Math.random() * width,
     y: Math.random() * height,
-    radius: Math.random() * 2 + 1,
-    vx: (Math.random() - 0.5) * 0.5,
-    vy: (Math.random() - 0.5) * 0.5
+    radius: Math.random() * 2.5 + 1.5,
+    vx: (Math.random() - 0.5) * 0.7,
+    vy: (Math.random() - 0.5) * 0.7
   }));
 
   function animate() {
     ctx.clearRect(0, 0, width, height);
     const isDark = document.documentElement.classList.contains('dark');
-    ctx.fillStyle = isDark ? 'rgba(255, 255, 255, 0.45)' : 'rgba(15, 23, 42, 0.45)';
-    ctx.strokeStyle = isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(15, 23, 42, 0.12)';
+    ctx.fillStyle = isDark ? 'rgba(255, 255, 255, 0.7)' : 'rgba(15, 23, 42, 0.7)';
+    ctx.strokeStyle = isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(15, 23, 42, 0.2)';
 
     particles.forEach((p, index) => {
       p.x += p.vx;
@@ -126,10 +127,11 @@ function initCanvasAnimation() {
       for (let j = index + 1; j < particles.length; j++) {
         const p2 = particles[j];
         const dist = Math.hypot(p.x - p2.x, p.y - p2.y);
-        if (dist < 130) {
+        if (dist < 140) {
           ctx.beginPath();
           ctx.moveTo(p.x, p.y);
           ctx.lineTo(p2.x, p2.y);
+          ctx.lineWidth = 0.8;
           ctx.stroke();
         }
       }
@@ -180,7 +182,7 @@ let tempSignupPicUrl = null;
 let tempEditPicUrl = null;
 
 async function registerUserInDB(user) {
-  if (!db || user.uid.startsWith('guest_')) return; // Do NOT save guest users to DB
+  if (!db || isGuestMode || user.uid.startsWith('guest_')) return;
   try {
     const userRef = doc(db, "users", user.uid);
     const snap = await getDoc(userRef);
@@ -208,8 +210,13 @@ async function registerUserInDB(user) {
   }
 }
 
-// Temporary Non-Saved Guest User Execution
+// COMPLETE FIX FOR GUEST MODE SESSION OVERWRITE
 document.getElementById('guestNavBtn')?.addEventListener('click', async () => {
+  if (auth && auth.currentUser) {
+    await signOut(auth); // Sign out any existing logged-in user session
+  }
+  
+  isGuestMode = true; // Set Guest Mode Flag to TRUE
   const guestId = Math.floor(1000 + Math.random() * 9000);
   currentUser = {
     uid: 'guest_' + guestId,
@@ -221,6 +228,29 @@ document.getElementById('guestNavBtn')?.addEventListener('click', async () => {
   mutedUsersList = [];
   launchChatApp();
 });
+
+// Create Group Modal Prompt
+window.createNewGroupPrompt = async function() {
+  const { value: groupName } = await Swal.fire({
+    title: 'Create Group Community',
+    input: 'text',
+    inputPlaceholder: 'Group Name...',
+    showCancelButton: true,
+    confirmButtonText: 'Create',
+    background: '#1e293b', color: '#fff', confirmButtonColor: '#10b981'
+  });
+
+  if (groupName) {
+    const newGroup = {
+      id: 'group_' + Date.now(),
+      name: groupName,
+      members: [currentUser.displayName, 'Ali', 'Zainab']
+    };
+    mockGroups.push(newGroup);
+    listenToActiveUsers();
+    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Group Created!', showConfirmButton: false, timer: 1500, background: '#1e293b', color: '#fff' });
+  }
+};
 
 // Working Invite Friends Action Button
 document.getElementById('inviteFriendsBtn')?.addEventListener('click', async () => {
@@ -252,7 +282,8 @@ document.getElementById('openSignupBtn')?.addEventListener('click', () => openMo
 
 if (auth) {
   onAuthStateChanged(auth, async (user) => {
-    if (user && user.emailVerified) {
+    // Only launch auth state user if Guest Mode is NOT active
+    if (user && user.emailVerified && !isGuestMode) {
       currentUser = {
         uid: user.uid,
         displayName: user.displayName || user.email.split('@')[0],
@@ -354,6 +385,7 @@ document.getElementById('editProfileForm')?.addEventListener('submit', async (e)
 async function handleGoogleAuth() {
   if (!auth) return;
   try {
+    isGuestMode = false;
     const provider = new GoogleAuthProvider();
     const result = await signInWithPopup(auth, provider);
     currentUser = {
@@ -578,7 +610,7 @@ function listenToActiveUsers() {
     });
   } else if (currentChatMode === 'groups') {
     title.innerText = "Group Chats";
-    usersContainer.innerHTML = '';
+    usersContainer.innerHTML = `<button onclick="createNewGroupPrompt()" class="w-full py-1.5 px-3 rounded-xl theme-btn-primary text-white text-xs font-bold mb-2 flex items-center justify-center gap-1.5"><i class="fa-solid fa-plus"></i> Create Group</button>`;
     mockGroups.forEach(g => {
       const gItem = document.createElement('div');
       gItem.className = `p-2 rounded-xl flex items-center gap-2.5 cursor-pointer transition-all hover:bg-black/10 dark:hover:bg-white/10 ${activeGroup?.id === g.id ? 'theme-btn-primary text-white' : ''}`;
@@ -611,7 +643,6 @@ function selectGroup(gObj) {
   listenToMessages();
 }
 
-// Fixed 1-on-1 Bidirectional Firestore Realtime Messaging Query
 function listenToMessages() {
   const container = document.getElementById('messagesContainer');
   if (!container || !db) return;
@@ -632,7 +663,6 @@ function listenToMessages() {
       if (currentChatMode === 'global' && msg.mode === 'global') {
         isVisible = true;
       } else if (currentChatMode === 'direct' && msg.mode === 'direct' && activeDirectUser) {
-        // FIXED: Shows both outgoing AND incoming messages between the 2 users
         if ((msg.senderId === currentUser.uid && msg.receiverId === activeDirectUser.uid) ||
             (msg.senderId === activeDirectUser.uid && msg.receiverId === currentUser.uid)) {
           isVisible = true;
@@ -873,6 +903,7 @@ document.getElementById('signupForm')?.addEventListener('submit', async (e) => {
   const name = document.getElementById('signupName').value;
 
   try {
+    isGuestMode = false;
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     let avatarUrl = tempSignupPicUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(name)}`;
     if (tempSignupPicFile) avatarUrl = await uploadToCloudinary(tempSignupPicFile);
@@ -897,6 +928,7 @@ document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
   const password = document.getElementById('loginPassword').value;
 
   try {
+    isGuestMode = false;
     const cred = await signInWithEmailAndPassword(auth, email, password);
     if (!cred.user.emailVerified) {
       Swal.fire({ icon: 'warning', title: 'Verify Email', text: 'Please verify your email address before logging in.', background: '#1e293b', color: '#fff' });
