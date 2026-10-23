@@ -25,8 +25,8 @@
 </head>
 <body class="h-full font-sans antialiased overflow-x-hidden transition-colors duration-300 theme-bg theme-text relative">
 
-  <!-- Global Particle Canvas Background -->
-  <canvas id="bgCanvas" class="fixed inset-0 z-0 pointer-events-none opacity-50"></canvas>
+  <!-- Clearer Particle Canvas Background -->
+  <canvas id="bgCanvas" class="fixed inset-0 z-0 pointer-events-none opacity-75"></canvas>
 
   <!-- ================= LANDING VIEW ================= -->
   <div id="landingView" class="relative min-h-screen flex flex-col justify-between overflow-x-hidden z-10">
@@ -113,12 +113,73 @@
       </div>
     </main>
 
+    <!-- RESTORED FEATURES SECTION -->
+    <section id="features" class="relative z-10 py-16 px-4 sm:px-12 border-t theme-border backdrop-blur-sm min-h-screen flex flex-col justify-center">
+      <div class="max-w-5xl mx-auto text-center mb-12">
+        <h2 class="text-2xl sm:text-4xl font-extrabold theme-text mb-3">Platform <span class="theme-accent-text">Features</span></h2>
+        <p class="text-xs sm:text-sm theme-subtext">Everything you need for seamless communication and interactive sharing.</p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto w-full">
+        <div class="p-6 rounded-2xl theme-card-bg border theme-border shadow-lg transition-all hover:-translate-y-1">
+          <div class="w-12 h-12 rounded-xl theme-btn-primary text-white flex items-center justify-center text-xl mb-4"><i class="fa-solid fa-comments"></i></div>
+          <h3 class="font-bold text-lg mb-2 theme-text">Real-Time DMs & Lounge</h3>
+          <p class="text-xs theme-subtext">Instant messaging with live status dots, message search, and customizable wallpapers.</p>
+        </div>
+        <div class="p-6 rounded-2xl theme-card-bg border theme-border shadow-lg transition-all hover:-translate-y-1">
+          <div class="w-12 h-12 rounded-xl theme-btn-primary text-white flex items-center justify-center text-xl mb-4"><i class="fa-solid fa-sparkles"></i></div>
+          <h3 class="font-bold text-lg mb-2 theme-text">Mulaqaat AI ✨</h3>
+          <p class="text-xs theme-subtext">Private smart AI assistant for each user, accessible right from your sidebar for fast guidance.</p>
+        </div>
+        <div class="p-6 rounded-2xl theme-card-bg border theme-border shadow-lg transition-all hover:-translate-y-1">
+          <div class="w-12 h-12 rounded-xl theme-btn-primary text-white flex items-center justify-center text-xl mb-4"><i class="fa-solid fa-square-poll-vertical"></i></div>
+          <h3 class="font-bold text-lg mb-2 theme-text">Interactive Polls</h3>
+          <p class="text-xs theme-subtext">Create and publish interactive live polls in chats to collect votes and quick opinions instantly.</p>
+        </div>
+        <div class="p-6 rounded-2xl theme-card-bg border theme-border shadow-lg transition-all hover:-translate-y-1">
+          <div class="w-12 h-12 rounded-xl theme-btn-primary text-white flex items-center justify-center text-xl mb-4"><i class="fa-solid fa-video"></i></div>
+          <h3 class="font-bold text-lg mb-2 theme-text">WebRTC Video & Audio Calls</h3>
+          <p class="text-xs theme-subtext">Peer-to-peer HD calling screens powered by WebRTC technology to connect securely.</p>
+        </div>
+        <div class="p-6 rounded-2xl theme-card-bg border theme-border shadow-lg transition-all hover:-translate-y-1">
+          <div class="w-12 h-12 rounded-xl theme-btn-primary text-white flex items-center justify-center text-xl mb-4"><i class="fa-solid fa-photo-film"></i></div>
+          <h3 class="font-bold text-lg mb-2 theme-text">24h Realtime Statuses</h3>
+          <p class="text-xs theme-subtext">Post text, image, or video status updates that expire after 24 hours or delete manually.</p>
+        </div>
+        <div class="p-6 rounded-2xl theme-card-bg border theme-border shadow-lg transition-all hover:-translate-y-1">
+          <div class="w-12 h-12 rounded-xl theme-btn-primary text-white flex items-center justify-center text-xl mb-4"><i class="fa-solid fa-user-group"></i></div>
+          <h3 class="font-bold text-lg mb-2 theme-text">Group Communities</h3>
+          <p class="text-xs theme-subtext">Create custom groups and filter messages to view conversations from specific members easily.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- RESTORED ABOUT SECTION -->
+    <section id="about" class="relative z-10 py-16 px-4 sm:px-12 border-t theme-border min-h-screen flex flex-col justify-center">
+      <div class="max-w-4xl mx-auto theme-card-bg border theme-border rounded-3xl p-8 sm:p-12 shadow-2xl flex flex-col md:flex-row items-center gap-8 w-full">
+        <div class="flex-1 space-y-4">
+          <h2 class="text-2xl sm:text-3xl font-extrabold theme-text">About <span class="theme-accent-text">Aadhi Mulaqaat</span></h2>
+          <p class="text-xs sm:text-sm theme-subtext leading-relaxed">
+            Aadhi Mulaqaat is designed to bridge connections through rich real-time interactions. Featuring chat wallpaper customization, 24h media statuses, built-in avatars, profile editor, WebRTC calls, and Firebase sync.
+          </p>
+          <div class="flex items-center gap-6 pt-2">
+            <div><h4 class="font-bold text-xl theme-accent-text">100%</h4><p class="text-[10px] theme-subtext">Secure & Fast</p></div>
+            <div><h4 class="font-bold text-xl theme-accent-text">24/7</h4><p class="text-[10px] theme-subtext">AI Companion</p></div>
+            <div><h4 class="font-bold text-xl theme-accent-text">WebRTC</h4><p class="text-[10px] theme-subtext">P2P Calling</p></div>
+          </div>
+        </div>
+        <div class="w-28 h-28 sm:w-36 sm:h-36 rounded-full theme-btn-primary text-white flex items-center justify-center text-4xl sm:text-5xl shadow-xl shrink-0">
+          <i class="fa-solid fa-heart"></i>
+        </div>
+      </div>
+    </section>
+
     <footer class="relative z-10 py-3 sm:py-4 text-center text-[10px] sm:text-xs theme-subtext border-t theme-border backdrop-blur-md theme-card-bg px-4">
       &copy; 2026 Aadhi Mulaqaat. All Rights Reserved.
     </footer>
   </div>
 
-  <!-- AUTH MODALS WITH BUILT-IN AVATAR SELECTION -->
+  <!-- AUTH MODALS -->
   <div id="signupModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md hidden p-3 sm:p-4">
     <div class="theme-card-bg border theme-border rounded-2xl sm:rounded-3xl p-5 sm:p-8 max-w-md w-full shadow-2xl relative theme-text max-h-[90vh] overflow-y-auto custom-scroll">
       <button onclick="closeModal('signupModal')" class="absolute top-4 right-4 sm:top-5 sm:right-5 theme-subtext hover:theme-text text-base sm:text-lg">
@@ -129,7 +190,6 @@
         <h2 class="text-xl sm:text-2xl font-bold mb-1 theme-text">Create Account</h2>
         <p class="text-xs theme-subtext mb-4">Choose an avatar or upload custom photo.</p>
 
-        <!-- Avatar Selection -->
         <div class="flex flex-col items-center mb-5 space-y-3">
           <div class="relative w-20 h-20">
             <img id="signupAvatarPreview" src="https://api.dicebear.com/7.x/bottts/svg?seed=Felix" alt="Profile Preview" class="w-full h-full rounded-full object-cover border-4 theme-border shadow-md">
@@ -379,7 +439,6 @@
         </div>
 
         <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          <!-- Theme & Mode Selector inside Chat Page -->
           <div class="relative">
             <button onclick="toggleThemeDropdown('themeDropdownChat')" class="p-2 rounded-xl theme-card-bg border theme-border theme-text hover:theme-accent-text transition-all">
               <i class="fa-solid fa-palette text-xs sm:text-sm"></i>
@@ -463,7 +522,7 @@
             <i class="fa-regular fa-face-smile text-sm sm:text-base"></i>
           </button>
 
-          <button type="button" id="voiceMsgBtn" class="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl theme-input-bg border theme-border theme-text transition-all shrink-0" title="Voice Message (Click to Record/Stop)">
+          <button type="button" id="voiceMsgBtn" class="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl theme-input-bg border theme-border theme-text transition-all shrink-0" title="Voice Message">
             <i class="fa-solid fa-microphone text-sm sm:text-base" id="micIcon"></i>
           </button>
 
