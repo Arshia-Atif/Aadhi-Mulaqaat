@@ -33,7 +33,7 @@ const CLOUDINARY_CLOUD_NAME = "cxxjd9vz";
 const CLOUDINARY_UPLOAD_PRESET = "Mulaqat";
 
 let currentUser = null;
-let isGuestMode = false; // Dedicated flag for Guest Mode isolation
+let isGuestMode = false;
 let currentChatMode = 'global';
 let activeDirectUser = null;
 let activeGroup = null;
@@ -63,7 +63,6 @@ let mockGroups = [
   { id: 'group_2', name: 'Poetry & Coffee ☕', members: ['Ayesha', 'Bilal', 'Sara'] }
 ];
 
-// Universal Theme Palette & Light/Dark Mode Handlers
 window.setPalette = function(palette) {
   document.documentElement.setAttribute('data-theme', palette);
   document.getElementById('themeDropdownLanding')?.classList.add('hidden');
@@ -165,7 +164,6 @@ async function uploadToCloudinary(file) {
   });
 }
 
-// Built-in Avatar Selection Helper
 window.selectPresetAvatar = function(type, url) {
   if (type === 'signup') {
     document.getElementById('signupAvatarPreview').src = url;
@@ -210,13 +208,12 @@ async function registerUserInDB(user) {
   }
 }
 
-// COMPLETE FIX FOR GUEST MODE SESSION OVERWRITE
 document.getElementById('guestNavBtn')?.addEventListener('click', async () => {
   if (auth && auth.currentUser) {
-    await signOut(auth); // Sign out any existing logged-in user session
+    await signOut(auth);
   }
   
-  isGuestMode = true; // Set Guest Mode Flag to TRUE
+  isGuestMode = true;
   const guestId = Math.floor(1000 + Math.random() * 9000);
   currentUser = {
     uid: 'guest_' + guestId,
@@ -229,7 +226,6 @@ document.getElementById('guestNavBtn')?.addEventListener('click', async () => {
   launchChatApp();
 });
 
-// Create Group Modal Prompt
 window.createNewGroupPrompt = async function() {
   const { value: groupName } = await Swal.fire({
     title: 'Create Group Community',
@@ -252,7 +248,6 @@ window.createNewGroupPrompt = async function() {
   }
 };
 
-// Working Invite Friends Action Button
 document.getElementById('inviteFriendsBtn')?.addEventListener('click', async () => {
   const link = window.location.origin + window.location.pathname;
   try {
@@ -282,7 +277,6 @@ document.getElementById('openSignupBtn')?.addEventListener('click', () => openMo
 
 if (auth) {
   onAuthStateChanged(auth, async (user) => {
-    // Only launch auth state user if Guest Mode is NOT active
     if (user && user.emailVerified && !isGuestMode) {
       currentUser = {
         uid: user.uid,
@@ -406,7 +400,6 @@ async function handleGoogleAuth() {
 document.getElementById('googleAuthBtnSignup')?.addEventListener('click', handleGoogleAuth);
 document.getElementById('googleAuthBtnLogin')?.addEventListener('click', handleGoogleAuth);
 
-// Three-Dots Chat Menu Options
 document.getElementById('chatOptionsMenuBtn')?.addEventListener('click', () => {
   if (!activeDirectUser) return;
   const isBlocked = blockedUsersList.includes(activeDirectUser.uid);
@@ -478,12 +471,17 @@ window.submitLivePoll = async function() {
   const o1 = document.getElementById('pollOpt1Input')?.value;
   const o2 = document.getElementById('pollOpt2Input')?.value;
 
-  if (!q || !o1 || !o2) return;
+  if (!q || !o1 || !o2) {
+    Swal.fire({ toast: true, position: 'top-end', icon: 'warning', title: 'Please fill question and options!', showConfirmButton: false, timer: 1500, background: '#1e293b', color: '#fff' });
+    return;
+  }
 
   const pollData = {
     type: 'poll',
     question: q,
     options: [o1, o2],
+    votes: [0, 0],
+    votedUsers: [],
     senderId: currentUser.uid,
     senderName: currentUser.displayName,
     senderPhoto: currentUser.photoURL,
@@ -492,11 +490,47 @@ window.submitLivePoll = async function() {
     timestamp: serverTimestamp()
   };
 
-  if (db) await addDoc(collection(db, "messages"), pollData);
+  if (db && !currentUser.uid.startsWith('guest_')) {
+    await addDoc(collection(db, "messages"), pollData);
+  } else {
+    // For Guest Mode local simulation or if db is present
+    if (db) await addDoc(collection(db, "messages"), pollData);
+  }
+  
+  document.getElementById('pollQuestionInput').value = '';
+  document.getElementById('pollOpt1Input').value = '';
+  document.getElementById('pollOpt2Input').value = '';
   togglePollCreator(false);
+  Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Poll Published!', showConfirmButton: false, timer: 1500, background: '#1e293b', color: '#fff' });
 };
 
-// Voice Note Media Recorder
+// Interactive Poll Voting Function
+window.votePoll = async function(msgId, optionIndex) {
+  if (!db) return;
+  try {
+    const msgRef = doc(db, "messages", msgId);
+    const snap = await getDoc(msgRef);
+    if (snap.exists()) {
+      const data = snap.data();
+      const votedUsers = data.votedUsers || [];
+      if (votedUsers.includes(currentUser.uid)) {
+        Swal.fire({ toast: true, position: 'top-end', icon: 'warning', title: 'Aap pehle hi vote kar chuke hain!', showConfirmButton: false, timer: 1500, background: '#1e293b', color: '#fff' });
+        return;
+      }
+      const currentVotes = data.votes || [0, 0];
+      currentVotes[optionIndex] = (currentVotes[optionIndex] || 0) + 1;
+      votedUsers.push(currentUser.uid);
+      await updateDoc(msgRef, {
+        votes: currentVotes,
+        votedUsers: votedUsers
+      });
+      Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Vote Recorded!', showConfirmButton: false, timer: 1500, background: '#1e293b', color: '#fff' });
+    }
+  } catch (err) {
+    console.log("Voting error:", err);
+  }
+};
+
 document.getElementById('voiceMsgBtn')?.addEventListener('click', async () => {
   const micIcon = document.getElementById('micIcon');
   if (!isRecordingAudio) {
@@ -643,6 +677,7 @@ function selectGroup(gObj) {
   listenToMessages();
 }
 
+// FIXED MESSAGE RENDERING WITH POLL SUPPORT
 function listenToMessages() {
   const container = document.getElementById('messagesContainer');
   if (!container || !db) return;
@@ -682,7 +717,37 @@ function listenToMessages() {
         bubble.className = `flex gap-2.5 mb-3.5 ${isMe ? 'flex-row-reverse' : 'flex-row'} group`;
 
         let contentHtml = msg.text ? `<div>${msg.text}</div>` : '';
-        if (msg.type === 'audio' || msg.fileType === 'audio') {
+        
+        // POLL RENDERER LOGIC
+        if (msg.type === 'poll') {
+          const votes = msg.votes || [0, 0];
+          const totalVotes = votes.reduce((a, b) => a + b, 0);
+          let optionsHtml = '';
+          msg.options.forEach((opt, idx) => {
+            const count = votes[idx] || 0;
+            const percent = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
+            optionsHtml += `
+              <div class="mt-2 p-2 rounded-xl theme-input-bg border theme-border cursor-pointer hover:opacity-90 transition-all" onclick="vote('${msgId}', ${idx})">
+                <div class="flex justify-between text-xs font-semibold mb-1">
+                  <span>${opt}</span>
+                  <span>${count} (${percent}%)</span>
+                </div>
+                <div class="w-full bg-slate-700/30 rounded-full h-1.5 overflow-hidden">
+                  <div class="theme-accent-bg h-full rounded-full transition-all duration-500" style="width: ${percent}%"></div>
+                </div>
+              </div>
+            `;
+          });
+          contentHtml = `
+            <div class="w-64 sm:w-72">
+              <div class="font-bold text-xs sm:text-sm mb-2 flex items-center gap-1.5">
+                <i class="fa-solid fa-square-poll-vertical theme-accent-text"></i> ${msg.question}
+              </div>
+              <div class="space-y-1.5">${optionsHtml}</div>
+              <div class="text-[10px] theme-subtext mt-2 text-right">Total Votes: ${totalVotes}</div>
+            </div>
+          `;
+        } else if (msg.type === 'audio' || msg.fileType === 'audio') {
           contentHtml = `<audio controls src="${msg.fileUrl}" style="height:35px; width:200px;"></audio>`;
         } else if (msg.fileUrl) {
           if (msg.fileType === 'image') {
@@ -707,6 +772,11 @@ function listenToMessages() {
     container.scrollTop = container.scrollHeight;
   });
 }
+
+// Global scope assignment for voting helper in HTML inline onclick
+window.vote = function(msgId, optIndex) {
+  window.votePoll(msgId, optIndex);
+};
 
 document.getElementById('chatForm')?.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -759,7 +829,6 @@ document.getElementById('chatForm')?.addEventListener('submit', async (e) => {
   }
 });
 
-// Realtime 24h Expiring Status Stories
 window.postMediaStatusPrompt = async function() {
   const { value: formValues } = await Swal.fire({
     title: 'Post New Status',
@@ -868,7 +937,6 @@ function timeAgo(timestamp) {
   return `${hours}h ago`;
 }
 
-// WebRTC Call Handlers
 document.getElementById('startAudioCallBtn')?.addEventListener('click', () => startWebRTCCall(true));
 document.getElementById('startVideoCallBtn')?.addEventListener('click', () => startWebRTCCall(false));
 
