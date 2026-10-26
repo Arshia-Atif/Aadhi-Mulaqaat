@@ -43,13 +43,12 @@ let blockedUsersList = [];
 let mutedUsersList = [];
 let searchQuery = "";
 let selectedMemberFilter = "all";
+let replyingTo = null;
 
-// Real Voice Recording Variables
 let mediaRecorder = null;
 let audioChunks = [];
 let isRecordingAudio = false;
 
-// WebRTC State
 let localStream = null;
 let peerConnection = null;
 const servers = {
@@ -63,8 +62,16 @@ let mockGroups = [
   { id: 'group_2', name: 'Poetry & Coffee ☕', members: ['Ayesha', 'Bilal', 'Sara'] }
 ];
 
+// Load Saved Theme on Startup
+window.addEventListener('DOMContentLoaded', () => {
+  const savedTheme = localStorage.getItem('chat_theme') || 'emerald';
+  document.documentElement.setAttribute('data-theme', savedTheme);
+  initCanvasAnimation();
+});
+
 window.setPalette = function(palette) {
   document.documentElement.setAttribute('data-theme', palette);
+  localStorage.setItem('chat_theme', palette); // Save theme to localStorage
   document.getElementById('themeDropdownLanding')?.classList.add('hidden');
   document.getElementById('themeDropdownChat')?.classList.add('hidden');
 };
@@ -78,10 +85,10 @@ window.toggleDarkLightMode = function() {
   const icons = document.querySelectorAll('.modeIconGlobal');
   if (html.classList.contains('dark')) {
     html.classList.remove('dark');
-    icons.forEach(icon => icon.className = 'fa-solid fa-sun text-amber-500 text-xs sm:text-sm modeIconGlobal');
+    icons.forEach(icon => icon.className = 'fa-solid fa-moon text-slate-700 text-xs sm:text-sm modeIconGlobal');
   } else {
     html.classList.add('dark');
-    icons.forEach(icon => icon.className = 'fa-solid fa-moon text-slate-200 text-xs sm:text-sm modeIconGlobal');
+    icons.forEach(icon => icon.className = 'fa-solid fa-sun text-amber-400 text-xs sm:text-sm modeIconGlobal');
   }
 };
 
@@ -98,19 +105,19 @@ function initCanvasAnimation() {
     height = canvas.height = window.innerHeight;
   });
 
-  const particles = Array.from({ length: 55 }, () => ({
+  const particles = Array.from({ length: 65 }, () => ({
     x: Math.random() * width,
     y: Math.random() * height,
-    radius: Math.random() * 2.5 + 1.5,
-    vx: (Math.random() - 0.5) * 0.7,
-    vy: (Math.random() - 0.5) * 0.7
+    radius: Math.random() * 2.2 + 1.2,
+    vx: (Math.random() - 0.5) * 0.8,
+    vy: (Math.random() - 0.5) * 0.8
   }));
 
   function animate() {
     ctx.clearRect(0, 0, width, height);
     const isDark = document.documentElement.classList.contains('dark');
-    ctx.fillStyle = isDark ? 'rgba(255, 255, 255, 0.7)' : 'rgba(15, 23, 42, 0.7)';
-    ctx.strokeStyle = isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(15, 23, 42, 0.2)';
+    ctx.fillStyle = isDark ? 'rgba(255, 255, 255, 0.8)' : 'rgba(15, 23, 42, 0.8)';
+    ctx.strokeStyle = isDark ? 'rgba(255, 255, 255, 0.22)' : 'rgba(15, 23, 42, 0.22)';
 
     particles.forEach((p, index) => {
       p.x += p.vx;
@@ -126,7 +133,7 @@ function initCanvasAnimation() {
       for (let j = index + 1; j < particles.length; j++) {
         const p2 = particles[j];
         const dist = Math.hypot(p.x - p2.x, p.y - p2.y);
-        if (dist < 140) {
+        if (dist < 130) {
           ctx.beginPath();
           ctx.moveTo(p.x, p.y);
           ctx.lineTo(p2.x, p2.y);
@@ -466,21 +473,34 @@ window.togglePollCreator = function(show) {
 
 document.getElementById('pollBtn')?.addEventListener('click', () => togglePollCreator(true));
 
-window.submitLivePoll = async function() {
-  const q = document.getElementById('pollQuestionInput')?.value;
-  const o1 = document.getElementById('pollOpt1Input')?.value;
-  const o2 = document.getElementById('pollOpt2Input')?.value;
+window.addPollOptionField = function() {
+  const container = document.getElementById('pollOptionsContainer');
+  const optCount = container.children.length + 1;
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'poll-opt-input w-full px-3 py-1.5 rounded-xl theme-input-bg border theme-border text-xs theme-text mt-2';
+  input.placeholder = `Option ${optCount}`;
+  container.appendChild(input);
+};
 
-  if (!q || !o1 || !o2) {
-    Swal.fire({ toast: true, position: 'top-end', icon: 'warning', title: 'Please fill question and options!', showConfirmButton: false, timer: 1500, background: '#1e293b', color: '#fff' });
+window.submitLivePoll = async function() {
+  const q = document.getElementById('pollQuestionInput')?.value.trim();
+  const optInputs = document.querySelectorAll('.poll-opt-input');
+  const options = [];
+  optInputs.forEach(input => {
+    if (input.value.trim()) options.push(input.value.trim());
+  });
+
+  if (!q || options.length < 2) {
+    Swal.fire({ toast: true, position: 'top-end', icon: 'warning', title: 'Please enter question and at least 2 options!', showConfirmButton: false, timer: 1500, background: '#1e293b', color: '#fff' });
     return;
   }
 
   const pollData = {
     type: 'poll',
     question: q,
-    options: [o1, o2],
-    votes: [0, 0],
+    options: options,
+    votes: new Array(options.length).fill(0),
     votedUsers: [],
     senderId: currentUser.uid,
     senderName: currentUser.displayName,
@@ -490,21 +510,23 @@ window.submitLivePoll = async function() {
     timestamp: serverTimestamp()
   };
 
-  if (db && !currentUser.uid.startsWith('guest_')) {
+  if (db) {
     await addDoc(collection(db, "messages"), pollData);
-  } else {
-    // For Guest Mode local simulation or if db is present
-    if (db) await addDoc(collection(db, "messages"), pollData);
   }
   
   document.getElementById('pollQuestionInput').value = '';
-  document.getElementById('pollOpt1Input').value = '';
-  document.getElementById('pollOpt2Input').value = '';
+  document.getElementById('pollOptionsContainer').innerHTML = `
+    <input type="text" class="poll-opt-input w-full px-3 py-1.5 rounded-xl theme-input-bg border theme-border text-xs theme-text" placeholder="Option 1">
+    <input type="text" class="poll-opt-input w-full px-3 py-1.5 rounded-xl theme-input-bg border theme-border text-xs theme-text" placeholder="Option 2">
+  `;
   togglePollCreator(false);
   Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Poll Published!', showConfirmButton: false, timer: 1500, background: '#1e293b', color: '#fff' });
 };
 
-// Interactive Poll Voting Function
+window.vote = function(msgId, optIndex) {
+  window.votePoll(msgId, optIndex);
+};
+
 window.votePoll = async function(msgId, optionIndex) {
   if (!db) return;
   try {
@@ -517,7 +539,7 @@ window.votePoll = async function(msgId, optionIndex) {
         Swal.fire({ toast: true, position: 'top-end', icon: 'warning', title: 'Aap pehle hi vote kar chuke hain!', showConfirmButton: false, timer: 1500, background: '#1e293b', color: '#fff' });
         return;
       }
-      const currentVotes = data.votes || [0, 0];
+      const currentVotes = data.votes || [];
       currentVotes[optionIndex] = (currentVotes[optionIndex] || 0) + 1;
       votedUsers.push(currentUser.uid);
       await updateDoc(msgRef, {
@@ -529,6 +551,64 @@ window.votePoll = async function(msgId, optionIndex) {
   } catch (err) {
     console.log("Voting error:", err);
   }
+};
+
+window.setReplyTo = function(msgId, senderName, text) {
+  replyingTo = { id: msgId, senderName, text: text || 'Media / Attachment' };
+  document.getElementById('replyingToName').innerText = senderName;
+  document.getElementById('replyingToText').innerText = replyingTo.text;
+  document.getElementById('replyPreviewBanner').classList.remove('hidden');
+  document.getElementById('messageInput').focus();
+};
+
+window.cancelReply = function() {
+  replyingTo = null;
+  document.getElementById('replyPreviewBanner').classList.add('hidden');
+};
+
+window.toggleReaction = async function(msgId, emoji) {
+  if (!db) return;
+  try {
+    const msgRef = doc(db, "messages", msgId);
+    const snap = await getDoc(msgRef);
+    if (snap.exists()) {
+      const data = snap.data();
+      const reactions = data.reactions || {};
+      
+      if (!reactions[emoji]) reactions[emoji] = [];
+      
+      const userIndex = reactions[emoji].indexOf(currentUser.uid);
+      if (userIndex > -1) {
+        reactions[emoji].splice(userIndex, 1);
+        if (reactions[emoji].length === 0) delete reactions[emoji];
+      } else {
+        reactions[emoji].push(currentUser.uid);
+      }
+
+      await updateDoc(msgRef, { reactions });
+    }
+  } catch (err) {
+    console.log("Reaction error:", err);
+  }
+};
+
+window.showReactionPicker = function(msgId, event) {
+  event.stopPropagation();
+  const emojis = ['❤️', '😂', '👍', '🔥', '😮'];
+  let html = '<div class="flex gap-2 p-2 bg-slate-900 border border-slate-700 rounded-full shadow-lg">';
+  emojis.forEach(e => {
+    html += `<button onclick="toggleReaction('${msgId}', '${e}'); Swal.close();" class="text-lg hover:scale-125 transition-transform">${e}</button>`;
+  });
+  html += '</div>';
+
+  Swal.fire({
+    html: html,
+    showConfirmButton: false,
+    background: 'transparent',
+    backdrop: false,
+    position: 'bottom',
+    customClass: { popup: 'p-0 bg-transparent shadow-none' }
+  });
 };
 
 document.getElementById('voiceMsgBtn')?.addEventListener('click', async () => {
@@ -677,7 +757,6 @@ function selectGroup(gObj) {
   listenToMessages();
 }
 
-// FIXED MESSAGE RENDERING WITH POLL SUPPORT
 function listenToMessages() {
   const container = document.getElementById('messagesContainer');
   if (!container || !db) return;
@@ -714,13 +793,22 @@ function listenToMessages() {
         const isMe = msg.senderId === currentUser.uid;
         const bubble = document.createElement('div');
         bubble.id = `msg-${msgId}`;
-        bubble.className = `flex gap-2.5 mb-3.5 ${isMe ? 'flex-row-reverse' : 'flex-row'} group`;
+        bubble.className = `flex gap-2.5 mb-3.5 ${isMe ? 'flex-row-reverse' : 'flex-row'} group relative`;
+
+        let replyHtml = '';
+        if (msg.replyTo) {
+          replyHtml = `
+            <div class="mb-1.5 p-2 rounded-xl bg-black/20 dark:bg-white/10 border-l-4 theme-border text-[11px]">
+              <span class="font-bold">${msg.replyTo.senderName}</span>
+              <p class="truncate opacity-80">${msg.replyTo.text}</p>
+            </div>
+          `;
+        }
 
         let contentHtml = msg.text ? `<div>${msg.text}</div>` : '';
         
-        // POLL RENDERER LOGIC
         if (msg.type === 'poll') {
-          const votes = msg.votes || [0, 0];
+          const votes = msg.votes || [];
           const totalVotes = votes.reduce((a, b) => a + b, 0);
           let optionsHtml = '';
           msg.options.forEach((opt, idx) => {
@@ -757,13 +845,33 @@ function listenToMessages() {
           }
         }
 
+        let reactionsHtml = '';
+        if (msg.reactions && Object.keys(msg.reactions).length > 0) {
+          reactionsHtml = '<div class="flex flex-wrap gap-1 mt-2">';
+          for (const [emoji, users] of Object.entries(msg.reactions)) {
+            const hasReacted = users.includes(currentUser.uid);
+            reactionsHtml += `
+              <button onclick="toggleReaction('${msgId}', '${emoji}')" class="px-2 py-0.5 rounded-full text-[10px] border theme-border flex items-center gap-1 ${hasReacted ? 'theme-btn-primary text-white' : 'theme-card-bg theme-text'}">
+                <span>${emoji}</span> <span>${users.length}</span>
+              </button>
+            `;
+          }
+          reactionsHtml += '</div>';
+        }
+
         bubble.innerHTML = `
           <img src="${msg.senderPhoto || 'https://api.dicebear.com/7.x/bottts/svg?seed=User'}" class="w-7 h-7 sm:w-8 sm:h-8 rounded-full border theme-border self-end object-cover">
           <div class="p-3 rounded-2xl text-xs sm:text-sm relative ${isMe ? 'theme-btn-primary text-white font-medium rounded-br-none shadow-md' : 'theme-card-bg theme-text rounded-bl-none border theme-border'}">
             <div class="flex justify-between items-center gap-4 mb-1">
               <span class="text-[10px] font-bold opacity-80">${msg.senderName}</span>
+              <div class="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5">
+                <button onclick="setReplyTo('${msgId}', '${msg.senderName}', '${msg.text || 'Attachment'}')" title="Reply" class="text-[10px] opacity-75 hover:opacity-100"><i class="fa-solid fa-reply"></i></button>
+                <button onclick="showReactionPicker('${msgId}', event)" title="React" class="text-[10px] opacity-75 hover:opacity-100"><i class="fa-regular fa-face-smile"></i></button>
+              </div>
             </div>
+            ${replyHtml}
             ${contentHtml}
+            ${reactionsHtml}
           </div>
         `;
         container.appendChild(bubble);
@@ -772,11 +880,6 @@ function listenToMessages() {
     container.scrollTop = container.scrollHeight;
   });
 }
-
-// Global scope assignment for voting helper in HTML inline onclick
-window.vote = function(msgId, optIndex) {
-  window.votePoll(msgId, optIndex);
-};
 
 document.getElementById('chatForm')?.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -802,12 +905,14 @@ document.getElementById('chatForm')?.addEventListener('submit', async (e) => {
     fileUrl: fileUrl,
     fileType: fileType,
     mode: currentChatMode,
+    replyTo: replyingTo ? { id: replyingTo.id, senderName: replyingTo.senderName, text: replyingTo.text } : null,
     timestamp: serverTimestamp()
   };
 
   try {
     if (db) await addDoc(collection(db, "messages"), msgData);
     input.value = '';
+    cancelReply();
 
     if (currentChatMode === 'ai' && text) {
       const currentUserId = currentUser.uid;
@@ -839,7 +944,7 @@ window.postMediaStatusPrompt = async function() {
     showCancelButton: true,
     confirmButtonText: 'Post Status',
     background: '#1e293b', color: '#fff', confirmButtonColor: '#10b981',
-    preConfirm: () => [document.getElementById('swal-status-text').value, document.getElementById('swal-status-file').files[0]]
+    preConfirm: () => [document.getElementById('swal-status-text').value, document.getElementById['swal-status-file'].files[0]]
   });
 
   if (formValues) {
@@ -906,7 +1011,7 @@ function listenToRealtimeStatuses() {
       card.innerHTML = `
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-full border-2 border-emerald-500 p-0.5 shrink-0">
+            <div class="w-10 h-10 rounded-full border-2 theme-border p-0.5 shrink-0">
               <img src="${st.userPhoto || 'https://api.dicebear.com/7.x/bottts/svg?seed=User'}" class="w-full h-full rounded-full object-cover">
             </div>
             <div>
@@ -1079,6 +1184,168 @@ document.getElementById('openAiChatBtn')?.addEventListener('click', () => {
   document.getElementById('chatRoomTitle').innerText = "Mulaqaat AI ✨";
   document.getElementById('chatRoomSub').innerText = "Your private intelligent AI companion";
   listenToMessages();
-});
+})
 
-window.addEventListener('DOMContentLoaded', initCanvasAnimation);
+window.setGeminiApiKeyPrompt = async function() {
+    const currentKey = localStorage.getItem('gemini_api_key') || '';
+    const { value: apiKey } = await Swal.fire({
+      title: 'Gemini API Key Setup',
+      text: 'Enter your Google Gemini API Key for Mulaqaat AI:',
+      input: 'text',
+      inputValue: currentKey,
+      showCancelButton: true,
+      confirmButtonText: 'Save Key',
+      background: '#1e293b', color: '#fff'
+    });
+    if (apiKey !== undefined) {
+      localStorage.setItem('gemini_api_key', apiKey.trim());
+      Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Gemini API Key Saved!', showConfirmButton: false, timer: 1500, background: '#1e293b', color: '#fff' });
+    }
+  };
+  
+  async function callGeminiAI(promptText) {
+    const apiKey = localStorage.getItem('gemini_api_key');
+    if (!apiKey) {
+      return "⚠️ Gemini API Key not set! Please configure your API key.";
+    }
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
+      });
+      const data = await response.json();
+      if (data.candidates && data.candidates[0].content.parts[0].text) {
+        return data.candidates[0].content.parts[0].text;
+      }
+      return "AI could not generate a response.";
+    } catch (err) {
+      return "Error communicating with Gemini API: " + err.message;
+    }
+  }
+
+  window.openChatLockModal = async function() {
+    const currentPass = localStorage.getItem('chat_lock_pass');
+    const { value: password } = await Swal.fire({
+      title: currentPass ? 'Enter Chat Lock Password' : 'Set New Chat Lock Password',
+      input: 'password', showCancelButton: true, background: '#1e293b', color: '#fff'
+    });
+    if (password) {
+      if (!currentPass) {
+        localStorage.setItem('chat_lock_pass', password);
+        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Chat Locked!', showConfirmButton: false, timer: 1500, background: '#1e293b', color: '#fff' });
+      } else if (password === currentPass) {
+        localStorage.removeItem('chat_lock_pass');
+        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Chat Unlocked!', showConfirmButton: false, timer: 1500, background: '#1e293b', color: '#fff' });
+      }
+    }
+  };
+  
+  window.pinCurrentChat = function() {
+    localStorage.setItem('pinned_chat', JSON.stringify({ mode: currentChatMode }));
+    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Chat Pinned!', showConfirmButton: false, timer: 1500, background: '#1e293b', color: '#fff' });
+  };
+
+  // Location Sharing Feature
+document.getElementById('locationBtn')?.addEventListener('click', () => {
+    if (navigator.geolocation) {
+      Swal.fire({ 
+        title: 'Fetching Location...', 
+        allowOutsideClick: false, 
+        didOpen: () => Swal.showLoading(), 
+        background: '#1e293b', 
+        color: '#fff' 
+      });
+  
+      navigator.geolocation.getCurrentPosition(async (position) => {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+        const mapUrl = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=16/${lat}/${lon}`;
+        
+        const locMsg = {
+          type: 'location',
+          text: `📍 Live Location: Lat ${lat.toFixed(4)}, Lon ${lon.toFixed(4)}`,
+          mapUrl: mapUrl,
+          senderId: currentUser.uid,
+          senderName: currentUser.displayName,
+          senderPhoto: currentUser.photoURL,
+          receiverId: currentChatMode === 'ai' ? currentUser.uid : (currentChatMode === 'direct' ? activeDirectUser?.uid : 'global'),
+          mode: currentChatMode,
+          timestamp: serverTimestamp()
+        };
+  
+        if (db) {
+          await addDoc(collection(db, "messages"), locMsg);
+        }
+        Swal.close();
+      }, () => {
+        Swal.fire({ 
+          icon: 'error', 
+          title: 'Location Error', 
+          text: 'Unable to retrieve your location.', 
+          background: '#1e293b', 
+          color: '#fff' 
+        });
+      });
+    } else {
+      Swal.fire({ 
+        icon: 'error', 
+        title: 'Not Supported', 
+        text: 'Geolocation is not supported by your browser.', 
+        background: '#1e293b', 
+        color: '#fff' 
+      });
+    }
+  });
+
+  // --- 1. CHAT PIN FEATURE ---
+window.pinCurrentChat = function() {
+    const chatTitle = document.getElementById('chatRoomTitle')?.innerText || 'Chat';
+    localStorage.setItem('pinned_chat', JSON.stringify({ mode: currentChatMode, title: chatTitle }));
+    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `Chat Pinned: ${chatTitle}`, showConfirmButton: false, timer: 1500, background: '#1e293b', color: '#fff' });
+  };
+  
+  // --- 2. STAR MESSAGE FEATURE ---
+  window.starMessage = async function(msgId) {
+    let starredList = JSON.parse(localStorage.getItem('starred_messages') || '[]');
+    if (!starredList.includes(msgId)) {
+      starredList.push(msgId);
+      localStorage.setItem('starred_messages', JSON.stringify(starredList));
+      Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Message Starred!', showConfirmButton: false, timer: 1500, background: '#1e293b', color: '#fff' });
+    } else {
+      starredList = starredList.filter(id => id !== msgId);
+      localStorage.setItem('starred_messages', JSON.stringify(starredList));
+      Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: 'Unstarred Message', showConfirmButton: false, timer: 1500, background: '#1e293b', color: '#fff' });
+    }
+  };
+  
+  // --- 3. VIEW ONCE (ONE-TIME) MESSAGE FEATURE ---
+  let isViewOnceActive = false;
+  document.getElementById('viewOnceBtn')?.addEventListener('click', () => {
+    isViewOnceActive = !isViewOnceActive;
+    const btn = document.getElementById('viewOnceBtn');
+    if (isViewOnceActive) {
+      btn.classList.remove('text-slate-400');
+      btn.classList.add('text-amber-400', 'border-amber-400');
+      Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: 'View-Once Mode ON', showConfirmButton: false, timer: 1200, background: '#1e293b', color: '#fff' });
+    } else {
+      btn.classList.add('text-slate-400');
+      btn.classList.remove('text-amber-400', 'border-amber-400');
+      Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: 'View-Once Mode OFF', showConfirmButton: false, timer: 1200, background: '#1e293b', color: '#fff' });
+    }
+  });
+  
+  // Jab user View-Once message ko pehli baar open karega toh wo read hone ke baad delete ho jayega:
+  window.openViewOnceMessage = async function(msgId, text) {
+    await Swal.fire({
+      title: '🔒 View-Once Message',
+      text: text,
+      confirmButtonText: 'Close',
+      background: '#1e293b',
+      color: '#fff'
+    });
+    // Dekhne ke baad database ya local se remove kar dein
+    if (db) {
+      await deleteDoc(doc(db, "messages", msgId));
+    }
+  };
